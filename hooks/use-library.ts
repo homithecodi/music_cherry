@@ -56,6 +56,20 @@ function readStoredPrefs(): typeof DEFAULT_PREFS {
 
 const METADATA_BYTES = 512 * 1024;
 
+const LOCAL_PATH_HINT =
+  "Browsers cannot open local file paths. Use “Add local files” to pick it, or drag the file onto the library.";
+
+function looksLikeLocalPath(input: string): boolean {
+  const value = input.trim();
+  return (
+    /^[a-z]:[\\/]/i.test(value) ||
+    /^[\\/]{2}[^/\\]/.test(value) ||
+    /^file:\/\//i.test(value) ||
+    /^~\//.test(value) ||
+    /^\/(?:home|users|mnt|media|volumes|tmp)\//i.test(value)
+  );
+}
+
 function urlCandidates(input: string): URL[] {
   const trimmed = input.trim();
   if (!trimmed) return [];
@@ -236,6 +250,11 @@ export function useLibrary(): Library {
   );
 
   const addUrl = useCallback(async (raw: string) => {
+    if (looksLikeLocalPath(raw)) {
+      setAddState({ busy: false, message: null, error: LOCAL_PATH_HINT });
+      return;
+    }
+
     const candidates = urlCandidates(raw);
     if (candidates.length === 0) {
       setAddState({

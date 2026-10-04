@@ -34,7 +34,11 @@ export function MusicPlayer() {
     ],
   );
 
-  const engine = useAudioEngine(library.filtered, settings, library.updatePrefs);
+  const engine = useAudioEngine(
+    library.filtered,
+    settings,
+    library.updatePrefs,
+  );
 
   useArtworkColors(engine.current?.artworkUrl, library.prefs.accentEnabled);
 
@@ -44,7 +48,8 @@ export function MusicPlayer() {
         aria-hidden="true"
         className="pointer-events-none fixed inset-0 -z-10 transition-opacity duration-700"
         style={{
-          backgroundImage: "radial-gradient(58% 42% at 80% 4%, var(--accent-glow), transparent 70%)",
+          backgroundImage:
+            "radial-gradient(58% 42% at 80% 4%, var(--accent-glow), transparent 70%)",
           opacity: library.prefs.accentEnabled ? 0.6 : 0,
         }}
       />
@@ -56,9 +61,9 @@ export function MusicPlayer() {
           </div>
           <div>
             <h1 className="text-lg font-semibold leading-tight tracking-tight text-ink">
-              music_cherry
+              Music Cherry
             </h1>
-            <p className="text-xs text-muted">Local-first player</p>
+            <p className="text-xs text-muted">Powered by Next.JS</p>
           </div>
         </div>
 
@@ -81,7 +86,11 @@ export function MusicPlayer() {
         />
       </div>
 
-      <PlayerBar track={engine.current} engine={engine} onExpand={() => setNowPlayingOpen(true)} />
+      <PlayerBar
+        track={engine.current}
+        engine={engine}
+        onExpand={() => setNowPlayingOpen(true)}
+      />
 
       <NowPlaying
         track={engine.current}

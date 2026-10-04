@@ -40,6 +40,7 @@ export function LibraryPanel({
   const inputRef = useRef<HTMLInputElement>(null);
   const [url, setUrl] = useState("");
   const [showTone, setShowTone] = useState(false);
+  const [dragging, setDragging] = useState(false);
 
   const totalSize = tracks.reduce((sum, track) => sum + track.size, 0);
 
@@ -172,7 +173,35 @@ export function LibraryPanel({
         </p>
       ) : null}
 
-      <div className="scroll-slim min-h-0 flex-1 overflow-y-auto rounded-3xl border border-line bg-surface p-2">
+      <div
+        role="region"
+        aria-label="Track list — drop audio files here"
+        onDragOver={(event) => {
+          event.preventDefault();
+          if (event.dataTransfer.types.includes("Files")) setDragging(true);
+        }}
+        onDragLeave={(event) => {
+          if (event.currentTarget.contains(event.relatedTarget as Node)) return;
+          setDragging(false);
+        }}
+        onDrop={(event) => {
+          event.preventDefault();
+          setDragging(false);
+          if (event.dataTransfer.files.length) onAddLocal(event.dataTransfer.files);
+        }}
+        className={`scroll-slim relative min-h-0 flex-1 overflow-y-auto rounded-3xl border bg-surface p-2 transition ${
+          dragging ? "border-accent ring-2 ring-accent/40" : "border-line"
+        }`}
+      >
+        {dragging ? (
+          <div className="animate-fade pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-3xl bg-surface/92 backdrop-blur-sm">
+            <div className="flex flex-col items-center gap-2 text-center">
+              <UploadIcon className="h-7 w-7 text-accent" />
+              <p className="text-sm font-semibold text-ink">Drop to add to your library</p>
+            </div>
+          </div>
+        ) : null}
+
         {filtered.length === 0 ? (
           <EmptyLibrary hasQuery={Boolean(query.trim())} />
         ) : (
@@ -314,7 +343,7 @@ function EmptyLibrary({ hasQuery }: { hasQuery: boolean }) {
       <p className="max-w-xs text-xs text-muted">
         {hasQuery
           ? "Try a different title, artist or album."
-          : "Add audio files from your device or paste a direct link to a song."}
+          : "Add audio files from your device, drag them here, or paste a direct link to a song."}
       </p>
     </div>
   );

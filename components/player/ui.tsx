@@ -2,7 +2,6 @@
 
 import { useEffect, useRef } from "react";
 import type { CSSProperties, ReactNode } from "react";
-import { BAND_COUNT } from "@/lib/spectrum";
 
 export function Slider({
   value,
@@ -87,22 +86,34 @@ export function IconButton({
 
 const REST_HEIGHT = 0.14;
 
-export function Equalizer({
-  readBands,
-  live,
-  bars = 5,
-  className = "",
-}: {
-  readBands?: (out: Float32Array) => boolean;
+export type EqualizerProps = {
+  readLevels?: (out: Float32Array) => boolean;
   live: boolean;
+  available?: boolean;
   bars?: number;
+  mirrored?: boolean;
   className?: string;
-}) {
+};
+
+export function Equalizer({
+  readLevels,
+  live,
+  available = true,
+  bars = 5,
+  mirrored = true,
+  className = "",
+}: EqualizerProps) {
+  const count = Math.max(1, Math.floor(bars));
   const nodesRef = useRef<(HTMLSpanElement | null)[]>([]);
-  const levelsRef = useRef<Float32Array>(new Float32Array(BAND_COUNT));
+  const levelsRef = useRef<Float32Array>(new Float32Array(count));
   const frameRef = useRef<number | null>(null);
-  const count = Math.min(bars, BAND_COUNT);
-  const active = Boolean(readBands) && live;
+  const active = Boolean(readLevels) && live && available;
+
+  useEffect(() => {
+    if (levelsRef.current.length !== count) {
+      levelsRef.current = new Float32Array(count);
+    }
+  }, [count]);
 
   useEffect(() => {
     const nodes = nodesRef.current;
@@ -135,15 +146,21 @@ export function Equalizer({
     }
 
     const tick = () => {
-      const usable = readBands?.(levels) === true;
+      try {
+        const usable = readLevels?.(levels) === true;
 
-      for (let i = 0; i < count; i += 1) {
-        const measured = usable ? levels[i] ?? 0 : 0;
-        const target = REST_HEIGHT + measured * (1 - REST_HEIGHT);
-        levels[i] = target > levels[i] ? target : levels[i] * 0.82 + target * 0.18;
+        for (let i = 0; i < count; i += 1) {
+          const measured = usable ? levels[i] ?? 0 : 0;
+          const target = REST_HEIGHT + measured * (1 - REST_HEIGHT);
+          levels[i] = target > levels[i] ? target : levels[i] * 0.82 + target * 0.18;
+        }
+
+        paint();
+      } catch {
+        for (let i = 0; i < count; i += 1) levels[i] = REST_HEIGHT;
+        paint();
       }
 
-      paint();
       frameRef.current = requestAnimationFrame(tick);
     };
 
@@ -151,7 +168,9 @@ export function Equalizer({
     return () => {
       if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
     };
-  }, [active, count, readBands]);
+  }, [active, count, readLevels]);
+
+  if (!available) return null;
 
   return (
     <div
@@ -164,7 +183,9 @@ export function Equalizer({
           ref={(node) => {
             nodesRef.current[index] = node;
           }}
-          className="w-[3px] origin-center rounded-full bg-current"
+          className={`w-[3px] rounded-full bg-current ${
+            mirrored ? "origin-center" : "origin-bottom"
+          }`}
           style={{ height: "100%", transform: `scaleY(${REST_HEIGHT})` }}
         />
       ))}

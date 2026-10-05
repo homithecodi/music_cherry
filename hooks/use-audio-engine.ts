@@ -5,8 +5,16 @@ import type { RepeatMode, Track } from "@/lib/tracks";
 import { needsAudioGraph } from "@/lib/tracks";
 import {
   FFT_SIZE,
+  MIN_REF_RMS,
+  RMS_DECAY,
+  SHAPE_MIDPOINT,
+  SHAPE_SPAN_DB,
+  SILENCE_RMS,
   createSpectrumBuffer,
-  readBands as readBandsFromSpectrum,
+  createWaveBuffer,
+  readBandDb,
+  readRms,
+  tiltFor,
 } from "@/lib/spectrum";
 
 const TONE_RANGE_DB = 12;
@@ -47,7 +55,7 @@ export type AudioEngine = {
   setVolume: (value: number) => void;
   setBass: (value: number) => void;
   setTreble: (value: number) => void;
-  readBands: (out: Float32Array) => boolean;
+  readLevels: (out: Float32Array) => boolean;
   toggleShuffle: () => void;
   cycleRepeat: () => void;
 };
@@ -81,7 +89,10 @@ export function useAudioEngine(
   const frameRef = useRef<number | null>(null);
   const currentRef = useRef<Track | null>(null);
   const settingsRef = useRef(settings);
-  const endedRef = useRef<() => void>(() => undefined);
+  const endedRef
+    = useRef<() => void>(() => undefined);
+  const referenceRef = useRef(0);
+  const resumeRef = useRef<{ time: number; play: boolean } | null>(null);
   const isPlayingRef = useRef(false);
   const modeRef = useRef<boolean | null>(null);
 
@@ -172,6 +183,14 @@ export function useAudioEngine(
           if (track) track.duration = audio.duration;
           setDuration(audio.duration);
         }
+        const resume = resumeRef.current;
+        if (resume) {
+          resumeRef.current = null;
+          if (Number.isFinite(audio.duration) && audio.duration > 0) {
+            audio.currentTime = Math.min(resume.time, audio.duration);
+          }
+          if (resume.play) startPlayback();
+        }
       };
 
       audio.addEventListener("loadedmetadata", handleMetadata);
@@ -188,7 +207,7 @@ export function useAudioEngine(
 
       return audio;
     },
-    [teardownAudio],
+    [startPlayback, teardownAudio],
   );
 
   const ensureGraph = useCallback((audio: HTMLAudioElement) => {
@@ -210,8 +229,6 @@ export function useAudioEngine(
     const analyser = context.createAnalyser();
     analyser.fftSize = FFT_SIZE;
     analyser.smoothingTimeConstant = 0.72;
-    analyser.minDecibels = -92;
-    analyser.maxDecibels = -18;
 
     source.connect(low).connect(high).connect(gain).connect(analyser).connect(context.destination);
 
@@ -219,16 +236,79 @@ export function useAudioEngine(
     return graphRef.current;
   }, []);
 
-const spectrumRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
+const spectrumRef = useRef<Float32Array<ArrayBuffer> | null>(null);
+  const waveRef = useRef<Float32Array<ArrayBuffer> | null>(null);
+  const scratchRef = useRef<Float32Array>(new Float32Array(0));
 
-  const readBands = useCallback((out: Float32Array) => {
+  const ensureLiveGraph = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio) return null;
+
     const graph = graphRef.current;
+    if (graph && graph.context.state !== "closed") return graph;
+
+    const track = currentRef.current;
+    const time = audio.currentTime;
+    const playing = !audio.paused;
+
+    const fresh = createAudio(true);
+    if (!fresh) return null;
+
+    const rebuilt = ensureGraph(fresh);
+    if (!rebuilt) return null;
+
+    if (track) {
+      resumeRef.current = { time, play: playing };
+      fresh.setAttribute("src", track.src);
+      fresh.load();
+      if (playing) startPlayback();
+    }
+
+    return rebuilt;
+  }, [createAudio, ensureGraph, startPlayback]);
+
+  const readLevels = useCallback((out: Float32Array) => {
+    const graph = ensureLiveGraph();
     if (!graph) return false;
-    spectrumRef.current ??= createSpectrumBuffer();
-    graph.analyser.getByteFrequencyData(spectrumRef.current);
-    readBandsFromSpectrum(spectrumRef.current, graph.context.sampleRate, out);
+
+    if (spectrumRef.current === null) spectrumRef.current = createSpectrumBuffer();
+    if (waveRef.current === null) waveRef.current = createWaveBuffer();
+    if (scratchRef.current.length !== out.length) {
+      scratchRef.current = new Float32Array(out.length);
+    }
+
+    const spectrum = spectrumRef.current;
+    const wave = waveRef.current;
+    const scratch = scratchRef.current;
+
+    graph.analyser.getFloatTimeDomainData(wave);
+    const rms = readRms(wave);
+    if (rms < SILENCE_RMS) return false;
+
+    graph.analyser.getFloatFrequencyData(spectrum);
+    readBandDb(spectrum, out.length, graph.context.sampleRate, scratch);
+
+    const bars = out.length;
+    for (let i = 0; i < bars; i += 1) {
+      scratch[i] += tiltFor(i, bars);
+    }
+
+    let sum = 0;
+    for (let i = 0; i < bars; i += 1) {
+      sum += scratch[i];
+    }
+    const mean = sum / bars;
+
+    referenceRef.current = Math.max(rms, referenceRef.current * RMS_DECAY);
+    const loudness = Math.min(1, rms / Math.max(referenceRef.current, MIN_REF_RMS));
+
+    for (let i = 0; i < bars; i += 1) {
+      const shape = (scratch[i] - mean) / SHAPE_SPAN_DB + SHAPE_MIDPOINT;
+      out[i] = Math.min(1, Math.max(0, shape)) * loudness;
+    }
+
     return true;
-  }, []);
+  }, [ensureLiveGraph]);
 
   const loadInto = useCallback(
     (track: Track, autoplay: boolean) => {
@@ -538,7 +618,7 @@ rewindElement(audio);
     setVolume,
     setBass,
     setTreble,
-    readBands,
+    readLevels,
     toggleShuffle,
     cycleRepeat,
   };

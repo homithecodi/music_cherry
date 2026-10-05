@@ -62,7 +62,7 @@ export function PlayerBar({
 
           {engine.isPlaying && track ? (
             <span className="hidden text-accent sm:block">
-              <Equalizer readBands={engine.readBands} live />
+              <Equalizer readLevels={engine.readLevels} live available={engine.toneAvailable} />
             </span>
           ) : null}
         </div>

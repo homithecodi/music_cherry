@@ -39,7 +39,8 @@ export function NowPlaying({
 
   if (!open) return null;
 
-  const progress = engine.duration > 0 ? (engine.currentTime / engine.duration) * 100 : 0;
+  const progress =
+    engine.duration > 0 ? (engine.currentTime / engine.duration) * 100 : 0;
 
   return (
     <div className="animate-fade fixed inset-0 z-50 flex flex-col overflow-hidden">
@@ -53,7 +54,11 @@ export function NowPlaying({
 
       <div className="relative flex min-h-0 flex-1 flex-col">
         <header className="flex items-center justify-between gap-4 px-5 py-5 sm:px-8">
-          <IconButton onClick={onClose} label="Close now playing" className="text-white">
+          <IconButton
+            onClick={onClose}
+            label="Close now playing"
+            className="text-white"
+          >
             <ChevronDownIcon />
           </IconButton>
           <div className="min-w-0 text-center">
@@ -90,7 +95,10 @@ export function NowPlaying({
                   <h1 className="animate-rise text-3xl font-semibold tracking-tight text-white sm:text-4xl lg:text-5xl">
                     {track.title}
                   </h1>
-                  <p className="animate-rise text-lg text-white/70" style={{ animationDelay: "70ms" }}>
+                  <p
+                    className="animate-rise text-lg text-white/70"
+                    style={{ animationDelay: "70ms" }}
+                  >
                     {track.artist}
                   </p>
                 </div>
@@ -116,7 +124,11 @@ export function NowPlaying({
                   >
                     <ShuffleIcon />
                   </IconButton>
-                  <IconButton onClick={engine.previous} label="Previous track" className="text-white">
+                  <IconButton
+                    onClick={engine.previous}
+                    label="Previous track"
+                    className="text-white"
+                  >
                     <PrevIcon />
                   </IconButton>
                   <button
@@ -125,9 +137,17 @@ export function NowPlaying({
                     aria-label={engine.isPlaying ? "Pause" : "Play"}
                     className="inline-flex h-20 w-20 items-center justify-center rounded-full bg-white text-[#14151c] shadow-[0_20px_50px_-18px_rgba(0,0,0,0.8)] transition hover:scale-105 active:scale-95"
                   >
-                    {engine.isPlaying ? <PauseIcon className="h-8 w-8" /> : <PlayIcon className="h-8 w-8 translate-x-0.5" />}
+                    {engine.isPlaying ? (
+                      <PauseIcon className="h-8 w-8" />
+                    ) : (
+                      <PlayIcon className="h-8 w-8 translate-x-0.5" />
+                    )}
                   </button>
-                  <IconButton onClick={engine.next} label="Next track" className="text-white">
+                  <IconButton
+                    onClick={engine.next}
+                    label="Next track"
+                    className="text-white"
+                  >
                     <NextIcon />
                   </IconButton>
                   <IconButton
@@ -136,7 +156,11 @@ export function NowPlaying({
                     active={engine.repeat !== "off"}
                     className="text-white"
                   >
-                    {engine.repeat === "one" ? <RepeatOneIcon /> : <RepeatIcon />}
+                    {engine.repeat === "one" ? (
+                      <RepeatOneIcon />
+                    ) : (
+                      <RepeatIcon />
+                    )}
                   </IconButton>
                 </div>
 
@@ -149,7 +173,11 @@ export function NowPlaying({
 
                 <div className="flex flex-wrap items-center justify-center gap-2 text-xs text-white/60 lg:justify-start">
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 px-3 py-1">
-                    {track.kind === "local" ? <UploadIcon className="h-3.5 w-3.5" /> : <LinkIcon className="h-3.5 w-3.5" />}
+                    {track.kind === "local" ? (
+                      <UploadIcon className="h-3.5 w-3.5" />
+                    ) : (
+                      <LinkIcon className="h-3.5 w-3.5" />
+                    )}
                     {track.kind === "local" ? "Local file" : "Remote stream"}
                   </span>
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 px-3 py-1">
@@ -158,7 +186,13 @@ export function NowPlaying({
                   </span>
                   {engine.isPlaying ? (
                     <span className="inline-flex items-center gap-2 rounded-full border border-white/15 px-3 py-1 text-white/85">
-                      <Equalizer readBands={engine.readBands} live />
+                      <Equalizer
+                        readLevels={engine.readLevels}
+                        available={engine.toneAvailable}
+                        bars={10}
+                        mirrored={true}
+                        live
+                      />
                       Playing
                     </span>
                   ) : null}
@@ -171,7 +205,9 @@ export function NowPlaying({
             <div className="animate-fade flex h-28 w-28 items-center justify-center rounded-3xl border border-white/15 bg-white/10">
               <NoteIcon className="h-12 w-12 text-white/70" />
             </div>
-            <h2 className="text-2xl font-semibold text-white">Nothing playing yet</h2>
+            <h2 className="text-2xl font-semibold text-white">
+              Nothing playing yet
+            </h2>
             <p className="max-w-sm text-sm text-white/65">
               Pick a track from your library to start listening.
             </p>
@@ -192,7 +228,9 @@ export function NowPlaying({
 function Meta({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0">
-      <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-white/45">{label}</p>
+      <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-white/45">
+        {label}
+      </p>
       <p className="truncate text-white/90">{value}</p>
     </div>
   );

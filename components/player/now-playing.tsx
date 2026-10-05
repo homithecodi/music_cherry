@@ -184,18 +184,16 @@ export function NowPlaying({
                     <NoteIcon className="h-3.5 w-3.5" />
                     {engine.duration > 0 ? formatTime(engine.duration) : "Live"}
                   </span>
-                  {engine.isPlaying ? (
-                    <span className="inline-flex items-center gap-2 rounded-full border border-white/15 px-3 py-1 text-white/85">
-                      <Equalizer
-                        readLevels={engine.readLevels}
-                        available={engine.toneAvailable}
-                        bars={10}
-                        mirrored={true}
-                        live
-                      />
-                      Playing
-                    </span>
-                  ) : null}
+                  <span className="inline-flex items-center gap-2 rounded-full border border-white/15 px-3 py-1 text-white/85">
+                    <Equalizer
+                      readLevels={engine.readLevels}
+                      available={engine.toneAvailable}
+                      bars={40}
+                      mirrored={false}
+                      live={engine.isPlaying}
+                    />
+                    {engine.isPlaying && "Playing"}
+                  </span>
                 </div>
               </div>
             </div>

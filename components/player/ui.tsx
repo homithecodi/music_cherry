@@ -105,14 +105,14 @@ export function Equalizer({
 }: EqualizerProps) {
   const count = Math.max(1, Math.floor(bars));
   const nodesRef = useRef<(HTMLSpanElement | null)[]>([]);
-  const levelsRef = useRef<Float32Array>(new Float32Array(count));
+  const levelsRef = useRef<Float32Array>(new Float32Array(count).fill(REST_HEIGHT));
   const frameRef = useRef<number | null>(null);
   const active = Boolean(readLevels) && live && available;
 
   useEffect(() => {
-    if (levelsRef.current.length !== count) {
-      levelsRef.current = new Float32Array(count);
-    }
+     if (levelsRef.current.length !== count) {
+       levelsRef.current = new Float32Array(count).fill(REST_HEIGHT);
+     }
   }, [count]);
 
   useEffect(() => {

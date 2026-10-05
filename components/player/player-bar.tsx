@@ -60,6 +60,7 @@ export function PlayerBar({
             </p>
           </div>
 
+          {track ? (
             <span className="hidden text-accent sm:block">
               <Equalizer
                 readLevels={engine.readLevels}
@@ -67,6 +68,7 @@ export function PlayerBar({
                 available={engine.toneAvailable}
               />
             </span>
+          ) : null}
         </div>
 
         <div className="flex flex-1 flex-col gap-2">

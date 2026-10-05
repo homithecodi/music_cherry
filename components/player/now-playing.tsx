@@ -192,7 +192,7 @@ export function NowPlaying({
                       mirrored={false}
                       live={engine.isPlaying}
                     />
-                    {engine.isPlaying && "Playing"}
+                    {engine.isPlaying ? "Playing" : "Paused"}
                   </span>
                 </div>
               </div>

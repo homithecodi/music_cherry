@@ -170,8 +170,6 @@ export function Equalizer({
     };
   }, [active, count, readLevels]);
 
-  if (!available) return null;
-
   return (
     <div
       className={`flex h-4 items-center justify-center gap-[2px] ${className}`}

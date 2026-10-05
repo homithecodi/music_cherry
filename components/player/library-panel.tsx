@@ -304,9 +304,9 @@ function TrackRow({
             >
               {track.title}
             </span>
-            {playing ? (
+            {active ? (
               <span className="text-accent">
-                <Equalizer readLevels={readLevels} live available={available} />
+                <Equalizer readLevels={readLevels} live={playing} available={available} />
               </span>
             ) : null}
           </span>

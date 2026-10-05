@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import type { CSSProperties, ReactNode } from "react";
+import { BAND_COUNT } from "@/lib/spectrum";
 
 export function Slider({
   value,
@@ -83,19 +85,87 @@ export function IconButton({
   );
 }
 
-export function Equalizer({ live, bars = 4 }: { live: boolean; bars?: number }) {
+const REST_HEIGHT = 0.14;
+
+export function Equalizer({
+  readBands,
+  live,
+  bars = 5,
+  className = "",
+}: {
+  readBands?: (out: Float32Array) => boolean;
+  live: boolean;
+  bars?: number;
+  className?: string;
+}) {
+  const nodesRef = useRef<(HTMLSpanElement | null)[]>([]);
+  const levelsRef = useRef<Float32Array>(new Float32Array(BAND_COUNT));
+  const frameRef = useRef<number | null>(null);
+  const count = Math.min(bars, BAND_COUNT);
+  const active = Boolean(readBands) && live;
+
+  useEffect(() => {
+    const nodes = nodesRef.current;
+    const levels = levelsRef.current;
+
+    const paint = () => {
+      for (let i = 0; i < count; i += 1) {
+        const node = nodes[i];
+        if (node) node.style.transform = `scaleY(${levels[i].toFixed(3)})`;
+      }
+    };
+
+    if (!active) {
+      const settle = () => {
+        let moving = false;
+        for (let i = 0; i < count; i += 1) {
+          if (levels[i] > REST_HEIGHT) {
+            levels[i] = Math.max(REST_HEIGHT, levels[i] - 0.08);
+            moving = true;
+          }
+          const node = nodes[i];
+          if (node) node.style.transform = `scaleY(${levels[i].toFixed(3)})`;
+        }
+        if (moving) frameRef.current = requestAnimationFrame(settle);
+      };
+      frameRef.current = requestAnimationFrame(settle);
+      return () => {
+        if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+      };
+    }
+
+    const tick = () => {
+      const usable = readBands?.(levels) === true;
+
+      for (let i = 0; i < count; i += 1) {
+        const measured = usable ? levels[i] ?? 0 : 0;
+        const target = REST_HEIGHT + measured * (1 - REST_HEIGHT);
+        levels[i] = target > levels[i] ? target : levels[i] * 0.82 + target * 0.18;
+      }
+
+      paint();
+      frameRef.current = requestAnimationFrame(tick);
+    };
+
+    frameRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+    };
+  }, [active, count, readBands]);
+
   return (
-    <div className="flex h-4 items-end gap-[3px]" aria-hidden="true">
-      {Array.from({ length: bars }, (_, index) => (
+    <div
+      className={`flex h-4 items-center justify-center gap-[2px] ${className}`}
+      aria-hidden="true"
+    >
+      {Array.from({ length: count }, (_, index) => (
         <span
           key={index}
-          data-live={live}
-          className="eq-bar w-[3px] rounded-full bg-current"
-          style={{
-            height: "100%",
-            animationDelay: `${index * 130}ms`,
-            animationDuration: `${760 + index * 90}ms`,
+          ref={(node) => {
+            nodesRef.current[index] = node;
           }}
+          className="w-[3px] origin-center rounded-full bg-current"
+          style={{ height: "100%", transform: `scaleY(${REST_HEIGHT})` }}
         />
       ))}
     </div>

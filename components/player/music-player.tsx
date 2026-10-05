@@ -40,7 +40,10 @@ export function MusicPlayer() {
     library.updatePrefs,
   );
 
-  useArtworkColors(engine.current?.artworkUrl, library.prefs.accentEnabled);
+  const palette = useArtworkColors(
+    engine.current?.artworkUrl,
+    library.prefs.accentEnabled,
+  );
 
   return (
     <main className="relative flex min-h-0 flex-1 flex-col">
@@ -96,6 +99,7 @@ export function MusicPlayer() {
         track={engine.current}
         engine={engine}
         open={nowPlayingOpen}
+        palette={palette}
         onClose={() => setNowPlayingOpen(false)}
       />
 

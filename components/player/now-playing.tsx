@@ -3,6 +3,8 @@
 import type { AudioEngine } from "@/hooks/use-audio-engine";
 import { formatBytes, formatTime } from "@/lib/format";
 import type { Track } from "@/lib/tracks";
+import type { Palette } from "@/lib/color";
+import { useWaveform } from "@/hooks/use-waveform";
 import { Artwork } from "./artwork";
 import {
   ChevronDownIcon,
@@ -17,19 +19,24 @@ import {
   ShuffleIcon,
   UploadIcon,
 } from "./icons";
-import { Equalizer, IconButton, Slider } from "./ui";
+import { Equalizer, IconButton } from "./ui";
+import { WaveformSeek } from "./waveform-seek";
 
 export function NowPlaying({
   track,
   engine,
   open,
+  palette,
   onClose,
 }: {
   track: Track | null;
   engine: AudioEngine;
   open: boolean;
+  palette: Palette;
   onClose: () => void;
 }) {
+  const waveform = useWaveform(track, open);
+
   if (!open) return null;
 
   const progress = engine.duration > 0 ? (engine.currentTime / engine.duration) * 100 : 0;
@@ -89,16 +96,15 @@ export function NowPlaying({
                 </div>
 
                 <div className="flex flex-col gap-2.5">
-                  <Slider
-                    label="Seek"
-                    value={engine.currentTime}
-                    max={engine.duration || 1}
-                    onChange={engine.seek}
+                  <WaveformSeek
+                    peaks={waveform.peaks}
+                    status={waveform.status}
+                    currentTime={engine.currentTime}
+                    duration={engine.duration}
+                    accent={palette.accent}
+                    restColor="rgba(255,255,255,0.28)"
+                    onSeek={engine.seek}
                   />
-                  <div className="flex justify-between font-mono text-xs text-white/60">
-                    <span>{formatTime(engine.currentTime)}</span>
-                    <span>-{formatTime(Math.max(engine.duration - engine.currentTime, 0))}</span>
-                  </div>
                 </div>
 
                 <div className="flex items-center justify-center gap-5 lg:justify-start">
@@ -152,7 +158,7 @@ export function NowPlaying({
                   </span>
                   {engine.isPlaying ? (
                     <span className="inline-flex items-center gap-2 rounded-full border border-white/15 px-3 py-1 text-white/85">
-                      <Equalizer live />
+                      <Equalizer readBands={engine.readBands} live />
                       Playing
                     </span>
                   ) : null}

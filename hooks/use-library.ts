@@ -107,8 +107,16 @@ type UrlProbe = {
   corsSafe: boolean;
   blob: Blob | null;
   status: number | null;
+  totalSize: number;
   failure: string | null;
 };
+
+function totalFromContentRange(response: Response): number {
+  const range = response.headers.get("content-range");
+  if (!range) return 0;
+  const total = Number(range.split("/")[1]);
+  return Number.isFinite(total) ? total : 0;
+}
 
 async function probeRemote(url: URL): Promise<UrlProbe> {
   try {
@@ -122,6 +130,7 @@ async function probeRemote(url: URL): Promise<UrlProbe> {
         corsSafe: false,
         blob: null,
         status: response.status,
+        totalSize: 0,
         failure:
           response.status === 404
             ? `Nothing at that address (HTTP 404).`
@@ -134,6 +143,7 @@ async function probeRemote(url: URL): Promise<UrlProbe> {
       corsSafe: true,
       blob: new Blob([buffer]),
       status: response.status,
+      totalSize: totalFromContentRange(response),
       failure: null,
     };
   } catch {
@@ -141,6 +151,7 @@ async function probeRemote(url: URL): Promise<UrlProbe> {
       corsSafe: false,
       blob: null,
       status: null,
+      totalSize: 0,
       failure: null,
     };
   }
@@ -299,7 +310,7 @@ export function useLibrary(): Library {
       album: metadata.album ?? "Unknown album",
       year: metadata.year,
       duration: 0,
-      size: result.blob?.size ?? 0,
+      size: result.totalSize || result.blob?.size || 0,
       kind: "remote",
       src: target.href,
       corsSafe: result.corsSafe,

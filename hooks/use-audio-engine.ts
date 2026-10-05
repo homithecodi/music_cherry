@@ -3,6 +3,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { RepeatMode, Track } from "@/lib/tracks";
 import { needsAudioGraph } from "@/lib/tracks";
+import {
+  FFT_SIZE,
+  createSpectrumBuffer,
+  readBands as readBandsFromSpectrum,
+} from "@/lib/spectrum";
 
 const TONE_RANGE_DB = 12;
 
@@ -19,6 +24,7 @@ type Graph = {
   low: BiquadFilterNode;
   high: BiquadFilterNode;
   gain: GainNode;
+  analyser: AnalyserNode;
 };
 
 export type AudioEngine = {
@@ -41,6 +47,7 @@ export type AudioEngine = {
   setVolume: (value: number) => void;
   setBass: (value: number) => void;
   setTreble: (value: number) => void;
+  readBands: (out: Float32Array) => boolean;
   toggleShuffle: () => void;
   cycleRepeat: () => void;
 };
@@ -200,11 +207,27 @@ export function useAudioEngine(
     high.type = "highshelf";
     high.frequency.value = 4000;
     const gain = context.createGain();
+    const analyser = context.createAnalyser();
+    analyser.fftSize = FFT_SIZE;
+    analyser.smoothingTimeConstant = 0.72;
+    analyser.minDecibels = -92;
+    analyser.maxDecibels = -18;
 
-    source.connect(low).connect(high).connect(gain).connect(context.destination);
+    source.connect(low).connect(high).connect(gain).connect(analyser).connect(context.destination);
 
-    graphRef.current = { context, low, high, gain };
+    graphRef.current = { context, low, high, gain, analyser };
     return graphRef.current;
+  }, []);
+
+const spectrumRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
+
+  const readBands = useCallback((out: Float32Array) => {
+    const graph = graphRef.current;
+    if (!graph) return false;
+    spectrumRef.current ??= createSpectrumBuffer();
+    graph.analyser.getByteFrequencyData(spectrumRef.current);
+    readBandsFromSpectrum(spectrumRef.current, graph.context.sampleRate, out);
+    return true;
   }, []);
 
   const loadInto = useCallback(
@@ -515,6 +538,7 @@ rewindElement(audio);
     setVolume,
     setBass,
     setTreble,
+    readBands,
     toggleShuffle,
     cycleRepeat,
   };

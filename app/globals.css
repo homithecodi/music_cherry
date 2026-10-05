@@ -182,16 +182,6 @@ input[type="range"]:disabled {
   animation: backdrop 780ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.eq-bar {
-  transform-origin: bottom;
-  animation: eq 900ms ease-in-out infinite alternate;
-  animation-play-state: paused;
-}
-
-.eq-bar[data-live="true"] {
-  animation-play-state: running;
-}
-
 .artwork-shadow {
   box-shadow:
     var(--shadow-strong),
@@ -264,15 +254,6 @@ input[type="range"]:disabled {
   to {
     opacity: 1;
     transform: scale(1);
-  }
-}
-
-@keyframes eq {
-  from {
-    transform: scaleY(0.18);
-  }
-  to {
-    transform: scaleY(1);
   }
 }
 

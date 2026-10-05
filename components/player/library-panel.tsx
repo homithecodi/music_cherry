@@ -214,6 +214,7 @@ export function LibraryPanel({
                 playing={track.id === currentId && engine.isPlaying}
                 position={filtered.indexOf(track) + 1}
                 onPlay={() => engine.playTrack(track.id)}
+                readBands={engine.readBands}
                 onRemove={() => removeTrack(track.id)}
               />
             ))}
@@ -258,6 +259,7 @@ function TrackRow({
   active,
   playing,
   position,
+  readBands,
   onPlay,
   onRemove,
 }: {
@@ -265,6 +267,7 @@ function TrackRow({
   active: boolean;
   playing: boolean;
   position: number;
+  readBands: (out: Float32Array) => boolean;
   onPlay: () => void;
   onRemove: () => void;
 }) {
@@ -300,7 +303,7 @@ function TrackRow({
             </span>
             {playing ? (
               <span className="text-accent">
-                <Equalizer live bars={3} />
+                <Equalizer readBands={readBands} live bars={5} />
               </span>
             ) : null}
           </span>

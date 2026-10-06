@@ -188,7 +188,7 @@ export function NowPlaying({
                     <Equalizer
                       readLevels={engine.readLevels}
                       available={engine.toneAvailable}
-                      bars={40}
+                      bars={10}
                       mirrored={false}
                       live={engine.isPlaying}
                     />

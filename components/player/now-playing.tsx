@@ -35,7 +35,7 @@ export function NowPlaying({
   palette: Palette;
   onClose: () => void;
 }) {
-  const waveform = useWaveform(track, open);
+  const waveform = useWaveform(track, open, engine);
 
   if (!open) return null;
 

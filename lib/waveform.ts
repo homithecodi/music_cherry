@@ -40,7 +40,7 @@ function toDb(value: number): number {
   return value > 0 ? 20 * Math.log10(value) : -120;
 }
 
-function shape(peaks: Float32Array): Float32Array {
+export function shape(peaks: Float32Array): Float32Array {
   if (peaks.length === 0) return peaks;
 
   const floor = percentileOf(peaks, FLOOR_PERCENTILE);
@@ -62,7 +62,7 @@ function shape(peaks: Float32Array): Float32Array {
   return smooth(scaled);
 }
 
-export function computePeaks(buffer: AudioBuffer, bars: number): Float32Array {
+export function computeRawPeaks(buffer: AudioBuffer, bars: number): Float32Array {
   const channels = Math.min(buffer.numberOfChannels, 2);
   const length = buffer.length;
   const blockSize = Math.max(1, Math.floor(length / bars));
@@ -92,7 +92,11 @@ export function computePeaks(buffer: AudioBuffer, bars: number): Float32Array {
     peaks[bar] = rms * (1 - TRANSIENT_WEIGHT) + loudest * TRANSIENT_WEIGHT;
   }
 
-  return shape(peaks);
+  return peaks;
+}
+
+export function computePeaks(buffer: AudioBuffer, bars: number): Float32Array {
+  return shape(computeRawPeaks(buffer, bars));
 }
 
 export function syntheticPeaks(bars: number, seed: string): Float32Array {

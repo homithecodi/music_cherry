@@ -10,6 +10,7 @@ import {
   SHAPE_MIDPOINT,
   SHAPE_SPAN_DB,
   SILENCE_RMS,
+  TRANSIENT_WEIGHT,
   createSpectrumBuffer,
   createWaveBuffer,
   readBandDb,
@@ -56,6 +57,7 @@ export type AudioEngine = {
   setBass: (value: number) => void;
   setTreble: (value: number) => void;
   readLevels: (out: Float32Array) => boolean;
+  readAmplitude: () => number;
   toggleShuffle: () => void;
   cycleRepeat: () => void;
 };
@@ -309,6 +311,23 @@ const spectrumRef = useRef<Float32Array<ArrayBuffer> | null>(null);
 
     return true;
   }, [ensureLiveGraph]);
+
+  const readAmplitude = useCallback(() => {
+    const graph = graphRef.current;
+    if (!graph || graph.context.state !== "running") return 0;
+
+    const wave = createWaveBuffer();
+    graph.analyser.getFloatTimeDomainData(wave);
+
+    const rms = readRms(wave);
+    let peak = 0;
+    for (let i = 0; i < FFT_SIZE; i += 1) {
+      const magnitude = wave[i] < 0 ? -wave[i] : wave[i];
+      if (magnitude > peak) peak = magnitude;
+    }
+
+    return rms * (1 - TRANSIENT_WEIGHT) + peak * TRANSIENT_WEIGHT;
+  }, []);
 
   const loadInto = useCallback(
     (track: Track, autoplay: boolean) => {
@@ -619,6 +638,7 @@ rewindElement(audio);
     setBass,
     setTreble,
     readLevels,
+    readAmplitude,
     toggleShuffle,
     cycleRepeat,
   };

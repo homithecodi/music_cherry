@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { RepeatMode, Track } from "@/lib/tracks";
 import { createId, trackMatches } from "@/lib/tracks";
 import { readMetadata } from "@/lib/metadata";
+import { proxyRemoteUrl } from "@/lib/proxy";
 import {
   clearPersistedLibrary,
   loadLibrary,
@@ -291,7 +292,17 @@ export function useLibrary(): Library {
     }
 
     const target = chosen ?? candidates[0];
-    const result = probe ?? (await probeRemote(target));
+    let result = probe ?? (await probeRemote(target));
+    let src = target.href;
+
+    if (!result.corsSafe && !result.failure) {
+      const proxiedSrc = proxyRemoteUrl(target.href);
+      const proxied = await probeRemote(new URL(proxiedSrc, window.location.origin));
+      if (proxied.corsSafe) {
+        result = proxied;
+        src = proxiedSrc;
+      }
+    }
 
     if (result.failure) {
       setAddState({ busy: false, message: null, error: result.failure });
@@ -312,7 +323,7 @@ export function useLibrary(): Library {
       duration: 0,
       size: result.totalSize || result.blob?.size || 0,
       kind: "remote",
-      src: target.href,
+      src,
       corsSafe: result.corsSafe,
       artworkBlob: metadata.picture,
       artworkUrl: metadata.picture ? URL.createObjectURL(metadata.picture) : undefined,

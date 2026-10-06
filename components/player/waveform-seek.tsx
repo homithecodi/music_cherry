@@ -61,7 +61,12 @@ export function WaveformSeek({
   onSeek,
 }: {
   peaks: Float32Array | null;
-  status: "idle" | "loading" | "analysed" | "placeholder";
+  status:
+  | "idle"
+  | "loading"
+  | "analysed"
+  | "real-time"
+  | "placeholder";
   currentTime: number;
   duration: number;
   accent: string;

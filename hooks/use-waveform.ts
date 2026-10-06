@@ -2,12 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Track } from "@/lib/tracks";
-import {
-  MAX_DECODE_BYTES,
-  WAVEFORM_RESOLUTION,
-  computePeaks,
-  syntheticPeaks,
-} from "@/lib/waveform";
+import { MAX_DECODE_BYTES, WAVEFORM_RESOLUTION, computePeaks, syntheticPeaks } from "@/lib/waveform";
 
 export type WaveformStatus = "idle" | "loading" | "analysed" | "placeholder";
 
@@ -25,7 +20,24 @@ const cache = new Map<string, CacheEntry>();
 const inflight = new Map<string, Promise<CacheEntry | null>>();
 
 async function analyse(track: Track): Promise<CacheEntry | null> {
-  if (!track.corsSafe) return null;
+  if (!track.corsSafe) {
+    // For remote tracks without CORS, try fetching with anonymous mode
+    try {
+      const response = await fetch(track.src, { mode: "cors", credentials: "omit" });
+      if (!response.ok) return null;
+
+      const bytes = await response.arrayBuffer();
+      if (bytes.byteLength === 0 || bytes.byteLength > MAX_DECODE_BYTES) return null;
+
+      const context = new OfflineAudioContext(1, 1, 44100);
+      const audio = await context.decodeAudioData(bytes);
+      if (audio.length === 0) return null;
+
+      return { peaks: computePeaks(audio, WAVEFORM_RESOLUTION), status: "analysed" };
+    } catch {
+      return null;
+    }
+  }
 
   try {
     const response = await fetch(track.src, { mode: "cors" });

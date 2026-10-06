@@ -1,3 +1,4 @@
+import { proxyRemoteUrl } from "./proxy";
 import type { RepeatMode, Track } from "./tracks";
 
 const DB_NAME = "music-cherry";
@@ -78,12 +79,16 @@ export async function loadLibrary(): Promise<Track[]> {
   const restored = records
     .filter((record) => record.track.kind !== "local" || record.blob)
     .sort((a, b) => a.index - b.index)
-    .map((record) => ({
-      ...record.track,
-      src: record.track.kind === "local" && record.blob
-        ? URL.createObjectURL(record.blob)
-        : record.track.src,
-    }));
+    .map((record) => {
+      const track = { ...record.track };
+      if (track.kind === "remote" && !track.corsSafe) {
+        track.src = proxyRemoteUrl(track.src);
+        track.corsSafe = true;
+      } else if (track.kind === "local" && record.blob) {
+        track.src = URL.createObjectURL(record.blob);
+      }
+      return track;
+    });
 
   for (const track of restored) {
     if (track.artworkBlob) {
